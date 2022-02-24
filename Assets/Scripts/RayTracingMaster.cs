@@ -8,6 +8,8 @@ public class RayTracingMaster : MonoBehaviour
 
     private Camera _camera;
 
+    public Texture SkyboxTexture;
+
     private void Awake()
     {
         _camera = GetComponent<Camera>();
@@ -48,5 +50,6 @@ public class RayTracingMaster : MonoBehaviour
     {
         RayTracingShader.SetMatrix("_CameraToWorld", _camera.cameraToWorldMatrix);
         RayTracingShader.SetMatrix("_CameraInverseProjection", _camera.projectionMatrix.inverse);
+        RayTracingShader.SetTexture(0, "_SkyboxTexture", SkyboxTexture);
     }
 }
