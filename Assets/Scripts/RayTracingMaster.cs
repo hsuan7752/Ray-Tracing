@@ -22,6 +22,9 @@ public class RayTracingMaster : MonoBehaviour
     public uint SphereMax = 100;
     public float SpherePlacementRadius = 100.0f;
     private ComputeBuffer _sphereBuffer;
+    public int SphereSeed;
+
+    private RenderTexture _converged;
 
     struct Sphere
     {
@@ -29,6 +32,8 @@ public class RayTracingMaster : MonoBehaviour
         public float radius;
         public Vector3 albedo;
         public Vector3 specular;
+        public float smoothness;
+        public Vector3 emission;
     };
 
     private void Awake()
@@ -59,6 +64,8 @@ public class RayTracingMaster : MonoBehaviour
 
     private void SetUpScene()
     {
+        Random.InitState(SphereSeed);
+
         List<Sphere> spheres = new List<Sphere>();
 
         // Add a number of random spheres
@@ -81,9 +88,19 @@ public class RayTracingMaster : MonoBehaviour
 
             // Albedo & specular color
             Color color = Random.ColorHSV();
-            bool metal = Random.value < 0.5f;
-            sphere.albedo = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
-            sphere.specular = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
+            float chance = Random.value;
+            if (chance < 0.8f)
+            {
+                bool metal = chance < 0.4f;
+                sphere.albedo = metal ? Vector4.zero : new Vector4(color.r, color.g, color.b);
+                sphere.specular = metal ? new Vector4(color.r, color.g, color.b) : new Vector4(0.04f, 0.04f, 0.04f);
+                sphere.smoothness = Random.value;
+            }
+            else
+            {
+                Color emission = Random.ColorHSV(0, 1, 0, 1, 3.0f, 8.0f);
+                sphere.emission = new Vector3(emission.r, emission.g, emission.b);
+            }
 
             // Add the sphere to the lists
             spheres.Add(sphere);
@@ -92,8 +109,14 @@ public class RayTracingMaster : MonoBehaviour
             continue;
         }
 
-        _sphereBuffer = new ComputeBuffer(spheres.Count, 40);
-        _sphereBuffer.SetData(spheres);
+        // Assign to compute buffer
+        if (_sphereBuffer != null)
+            _sphereBuffer.Release();
+        if (spheres.Count > 0)
+        {
+            _sphereBuffer = new ComputeBuffer(spheres.Count, 56);
+            _sphereBuffer.SetData(spheres);
+        }
     }
 
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
@@ -101,25 +124,26 @@ public class RayTracingMaster : MonoBehaviour
         SetShaderParameters();
         Render(destination);
     }
-    
+
     private void Render(RenderTexture destination)
     {
         // Make sure we have a current render target
         InitRenderTexture();
-        
+
         // Set the target and dispatch the compute shader
         RayTracingShader.SetTexture(0, "Result", _target);
         int threadGroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
         int threadGroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
         RayTracingShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-        
+
         // Blit the result texture to the screen
         //Graphics.Blit(_target, destination);
 
         if (_addMaterial == null)
             _addMaterial = new Material(Shader.Find("Hidden/AddShader"));
         _addMaterial.SetFloat("_Sample", _currentSample);
-        Graphics.Blit(_target, destination, _addMaterial);
+        Graphics.Blit(_target, _converged, _addMaterial);
+        Graphics.Blit(_converged, destination);
         _currentSample++;
     }
 
@@ -134,6 +158,8 @@ public class RayTracingMaster : MonoBehaviour
         RayTracingShader.SetVector("_DirectionalLight", new Vector4(l.x, l.y, l.z, DirectionalLight.intensity));
 
         RayTracingShader.SetBuffer(0, "_Spheres", _sphereBuffer);
+
+        RayTracingShader.SetFloat("_Seed", Random.value);
     }
 
     private void InitRenderTexture()
@@ -147,6 +173,16 @@ public class RayTracingMaster : MonoBehaviour
             _target = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             _target.enableRandomWrite = true;
             _target.Create();
+        }
+
+        if (_converged == null || _converged.width != Screen.width || _converged.height != Screen.height)
+        {
+            if (_converged != null)
+                _converged.Release();
+
+            _converged = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            _converged.enableRandomWrite = true;
+            _converged.Create();
         }
     }
 }
