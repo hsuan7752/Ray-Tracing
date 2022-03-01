@@ -13,6 +13,8 @@ static const float PI = 3.14159265f;
 
 float2 _PixelOffset;
 
+float4 _DirectionalLight;
+
 struct Ray
 {
     float3 origin;
@@ -73,7 +75,8 @@ RayHit Trace(Ray ray)
     IntersectGroundPlane(ray, bestHit);
 
     // Add a floating unit sphere
-    IntersectSphere(ray, bestHit, float4(0, 3.0f, 0, 1.0f));
+    IntersectSphere(ray, bestHit, float4(0.0f, 1.0f, 0.0f, 1.0f));
+    IntersectSphere(ray, bestHit, float4(4.0f, 1.0f, 0.0f, 1.0f));
     return bestHit;
 }
 
@@ -82,6 +85,7 @@ float3 Shade(inout Ray ray, RayHit hit)
     if (hit.distance < 1.#INF)
     {
         float3 specular = float3(0.6f, 0.6f, 0.6f);
+        float3 albedo = float3(0.8f, 0.8f, 0.8f);
 
         // Reflect the ray and multiply energy with spectular reflection
         ray.origin = hit.position + hit.normal * 0.001f;
@@ -89,7 +93,18 @@ float3 Shade(inout Ray ray, RayHit hit)
         ray.energy *= specular;
 
         // Return nothing
-        return float3(0.0f, 0.0f, 0.0f);
+        //return float3(0.0f, 0.0f, 0.0f);
+
+        // Shadow test ray
+        bool shadow = false;
+        Ray shadowRay = CreateRay(hit.position + hit.normal * 0.001f, -1 * _DirectionalLight.xyz);
+        RayHit shadowHit = Trace(shadowRay);
+
+        if (shadowHit.distance != 1.#INF)
+            return float3(0.0f, 0.0f, 0.0f);
+        
+        // Return a diffuse-shaded color
+        return saturate(dot(hit.normal, _DirectionalLight.xyz) * -1) * _DirectionalLight.w * albedo;
     }
     else
     {
