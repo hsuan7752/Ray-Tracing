@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 749478206286b7a47943c07fdd189a08, type: 3}
-  m_Name: TestRenderPipelineAsset
+  m_Script: {fileID: 11500000, guid: ef4acfdeb680d4a469f891775102e078, type: 3}
+  m_Name: RayTracingRenderPipelineAsset
   m_EditorClassIdentifier: 
   tutorialAsset: {fileID: 11400000, guid: 5449281f9ce72924387045a0ca87b3a3, type: 2}

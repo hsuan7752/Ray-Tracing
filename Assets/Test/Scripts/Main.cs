@@ -36,17 +36,20 @@ public class Test : RayTracingTutorial
 
     var accelerationStructure = _pipeline.RequestAccelerationStructure();
     var PRNGStates = _pipeline.RequirePRNGStates(camera);
+    var LightSample = _pipeline.RequirePRNGStates(camera);
 
     var cmd = CommandBufferPool.Get(typeof(OutputColorTutorial).Name);
     try
     {
-      if (_frameIndex < 100)
+      if (_frameIndex < 10)
       {
         using (new ProfilingSample(cmd, "RayTracing"))
         {
           cmd.SetRayTracingShaderPass(_shader, "RayTracing");
           cmd.SetRayTracingAccelerationStructure(_shader, _pipeline.accelerationStructureShaderId,
             accelerationStructure);
+
+            
           cmd.SetRayTracingIntParam(_shader, _frameIndexShaderId, _frameIndex);
           cmd.SetRayTracingBufferParam(_shader, _PRNGStatesShaderId, PRNGStates);
           cmd.SetRayTracingTextureParam(_shader, _outputTargetShaderId, outputTarget);

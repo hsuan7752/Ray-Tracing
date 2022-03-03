@@ -45,7 +45,7 @@
 
       half4 frag (v2f i) : SV_Target
       {
-        half4 col = half4(0.7, 0.7, 0.7, 1);
+        half4 col = half4(0.7, 0.7, 0.7, 1) * half4(dot(i.normal, float3(0.0f, 1.0f, 0.0f)).xxx, 1.0f);
         // apply fog
         UNITY_APPLY_FOG(i.fogCoord, col);
         return col;

@@ -637,7 +637,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 761114903}
-  - component: {fileID: 761114904}
+  - component: {fileID: 761114905}
   m_Layer: 0
   m_Name: SceneManager
   m_TagString: Untagged
@@ -659,7 +659,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &761114904
+--- !u!114 &761114905
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -668,20 +668,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 761114902}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4f0f6a78ce7861c47b3b7d89725e5219, type: 3}
+  m_Script: {fileID: 11500000, guid: 15de92ed1be1bcf41855dcc24af25210, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   renderers:
-  - {fileID: 84509965}
-  - {fileID: 84509964}
+  - {fileID: 706599629}
   - {fileID: 392448369}
-  - {fileID: 490086569}
+  - {fileID: 966350799}
   - {fileID: 277173846}
   - {fileID: 1053159169}
-  - {fileID: 706599629}
-  - {fileID: 1656770717}
-  - {fileID: 966350799}
-  lightRenderers:
+  - {fileID: 490086569}
+  - {fileID: 84509965}
+  - {fileID: 84509964}
   - {fileID: 1656770717}
 --- !u!1 &963194225
 GameObject:
@@ -779,7 +777,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0021b1013a9ba74db8e8588d28668a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  renderPipelineAsset: {fileID: 11400000, guid: 9b33c9c2b70522943aa93d9c804450f2,
+  renderPipelineAsset: {fileID: 11400000, guid: 84c3e093d6bde6440868a053558b14e3,
     type: 2}
 --- !u!1 &966350797
 GameObject:
