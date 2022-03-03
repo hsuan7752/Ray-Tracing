@@ -1,8 +1,7 @@
-﻿Shader "Test/Test"
+﻿Shader "Test/Mirror"
 {
   Properties
   {
-    _Color ("Main Color", Color) = (1, 1, 1, 1)
   }
   SubShader
   {
@@ -33,7 +32,6 @@
       };
 
       CBUFFER_START(UnityPerMaterial)
-      half4 _Color;
       CBUFFER_END
 
       v2f vert (appdata v)
@@ -47,7 +45,7 @@
 
       half4 frag (v2f i) : SV_Target
       {
-        half4 col = _Color * half4(dot(i.normal, float3(0.0f, 1.0f, 0.0f)).xxx, 1.0f);
+        half4 col = half4(0.7, 0.7, 0.7, 1);
         // apply fog
         UNITY_APPLY_FOG(i.fogCoord, col);
         return col;
@@ -67,8 +65,8 @@
 
       #pragma raytracing test
 
-      #include "../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/Common.hlsl"
-      #include "../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/PRNG.hlsl"
+      #include "./Common.hlsl"
+      #include "../../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/PRNG.hlsl"
 
       struct IntersectionVertex
       {
@@ -77,7 +75,6 @@
       };
 
       CBUFFER_START(UnityPerMaterial)
-      float4 _Color;
       CBUFFER_END
 
       void FetchIntersectionVertex(uint vertexIndex, out IntersectionVertex outVertex)
@@ -105,8 +102,9 @@
         float3x3 objectToWorld = (float3x3)ObjectToWorld3x4();
         float3 normalWS = normalize(mul(objectToWorld, normalOS));
 
-        float4 color = float4(1.0, 0, 0, 1);
-        if (rayIntersection.remainingDepth > 0)
+        float4 subColor = float4(0, 0, 0, 1);
+        // Get next color
+        if (rayIntersection.remainingDepth > 1)
         {
           // Get position in world space.
           float3 origin = WorldRayOrigin();
@@ -117,7 +115,7 @@
           // Make reflection ray.
           RayDesc rayDescriptor;
           rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-          rayDescriptor.Direction = normalize(normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates));
+          rayDescriptor.Direction = reflect(-positionWS, normalWS);
           rayDescriptor.TMin = 1e-5f;
           rayDescriptor.TMax = _CameraFarDistance;
 
@@ -126,14 +124,53 @@
           reflectionRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
           reflectionRayIntersection.PRNGStates = rayIntersection.PRNGStates;
           reflectionRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
+          reflectionRayIntersection.type = 0;
 
           TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
 
           rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
-          color = reflectionRayIntersection.color;
+          float r = reflectionRayIntersection.distance;
+          if (r < 1) r = 1;
+          subColor = reflectionRayIntersection.color / (r * r);
         }
 
-        rayIntersection.color = _Color * 0.5f * color;
+        float4 lightColor = float4(0, 0, 0, 1);
+        // shadow ray
+        if (rayIntersection.remainingDepth > 0) {
+          float3 origin = WorldRayOrigin();
+          float3 direction = WorldRayDirection();
+          float t = RayTCurrent();
+          float3 positionWS = origin + direction * t;
+
+          // Make reflection ray.
+          RayDesc rayDescriptor;
+          rayDescriptor.Origin = positionWS + 0.001f * normalWS;
+          float3 lightPos = float3(0, 1.845, 0);
+          rayDescriptor.Direction = lightPos - positionWS;
+          rayDescriptor.TMin = 1e-5f;
+          rayDescriptor.TMax = _CameraFarDistance;
+
+          // Tracing reflection.
+          RayIntersection shadowRayIntersection;
+          shadowRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
+          shadowRayIntersection.PRNGStates = rayIntersection.PRNGStates;
+          shadowRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
+          shadowRayIntersection.type = 0;
+
+          TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, shadowRayIntersection);
+          if (shadowRayIntersection.type == 1) {
+            float r = shadowRayIntersection.distance;
+            if (r < 1) r = 1;
+            lightColor = shadowRayIntersection.color / (r * r);
+            lightColor.a = 1.0;
+          }
+          rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
+        }
+
+
+        rayIntersection.color = subColor * lightColor;
+        rayIntersection.type = 0;
+        rayIntersection.distance = GetDistance();
       }
 
       ENDHLSL

@@ -40,7 +40,7 @@ public class Test : RayTracingTutorial
     var cmd = CommandBufferPool.Get(typeof(OutputColorTutorial).Name);
     try
     {
-      if (_frameIndex < 1000)
+      if (_frameIndex < 100)
       {
         using (new ProfilingSample(cmd, "RayTracing"))
         {

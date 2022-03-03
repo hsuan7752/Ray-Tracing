@@ -1,7 +1,7 @@
 ﻿#pragma max_recursion_depth 11
 
-#include "../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/Common.hlsl"
-#include "../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/PRNG.hlsl"
+#include "./Common.hlsl"
+#include "../../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/PRNG.hlsl"
 
 #define MAX_DEPTH (10)
 #define NUM_OF_SAMPLES (1)
@@ -38,7 +38,7 @@ void AntialiasingRayGenShader()
     rayDescriptor.TMax = _CameraFarDistance;
 
     RayIntersection rayIntersection;
-    rayIntersection.remainingDepth = 1;
+    rayIntersection.remainingDepth = MAX_DEPTH - 1;
     rayIntersection.PRNGStates = PRNGStates;
     rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -69,5 +69,6 @@ void MissShader(inout RayIntersection rayIntersection : SV_RayPayload)
 {
   float3 origin = WorldRayOrigin();
   float3 direction = WorldRayDirection();
-  rayIntersection.color = float4(BackgroundColor(origin, direction), 1.0f);
+  rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+  // rayIntersection.color = float4(BackgroundColor(origin, direction), 1.0f);
 }
