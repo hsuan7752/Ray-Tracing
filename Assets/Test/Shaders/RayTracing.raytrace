@@ -1,4 +1,4 @@
-﻿#pragma max_recursion_depth 11
+﻿#pragma max_recursion_depth 31
 
 #include "./Common.hlsl"
 #include "../../GPU-Ray-Tracing-in-One-Weekend/src/Assets/Shaders/PRNG.hlsl"
@@ -39,7 +39,7 @@ void AntialiasingRayGenShader()
 
     RayIntersection rayIntersection;
     rayIntersection.remainingDepth = MAX_DEPTH - 1;
-    rayIntersection.remainingDepth = 3;
+    rayIntersection.remainingDepth = 4;
     rayIntersection.PRNGStates = PRNGStates;
     rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 

@@ -130,7 +130,7 @@
 
           rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
           float r = reflectionRayIntersection.distance;
-          if (r < 1) r = 1;
+          // if (r < 1) r = 1;
           subColor = reflectionRayIntersection.color / (r * r);
         }
 
@@ -142,31 +142,42 @@
           float t = RayTCurrent();
           float3 positionWS = origin + direction * t;
 
+          uint numStructs;
+          _LightSamplePosBuffer.GetDimensions(numStructs);
+
           // Make reflection ray.
           RayDesc rayDescriptor;
           rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-          float3 lightPos = float3(0, 1.845, 0);
-          rayDescriptor.Direction = lightPos - positionWS;
           rayDescriptor.TMin = 1e-5f;
           rayDescriptor.TMax = _CameraFarDistance;
+    
 
+
+          uint lightIdx = GetRandomValue(rayIntersection.PRNGStates) * numStructs;
           // Tracing reflection.
           RayIntersection shadowRayIntersection;
-          shadowRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
           shadowRayIntersection.PRNGStates = rayIntersection.PRNGStates;
+          shadowRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
           shadowRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
           shadowRayIntersection.type = 0;
+
+          float3 lightPos = _LightSamplePosBuffer[lightIdx];
+          rayDescriptor.Direction = lightPos - positionWS;
 
           TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, shadowRayIntersection);
           if (shadowRayIntersection.type == 1) {
             float r = shadowRayIntersection.distance;
-            if (r < 1) r = 1;
+            // if (r < 1) r = 1;
             lightColor = shadowRayIntersection.color / (r * r);
-            lightColor.a = 1.0;
+            // if (lightColor.x > 1.0 && lightColor.y > 1.0 && lightColor.z > 1.0) break;
           }
+          
+          lightColor.a = 1.0;
+          // if (lightColor.x > 1.0) lightColor.x = 1.0;
+          // if (lightColor.y > 1.0) lightColor.y = 1.0;
+          // if (lightColor.z > 1.0) lightColor.z = 1.0;
           rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
         }
-
 
         rayIntersection.color = subColor * lightColor;
         rayIntersection.type = 0;

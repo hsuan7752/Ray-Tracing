@@ -13,3 +13,5 @@ MonoBehaviour:
   m_Name: RayTracingAsset
   m_EditorClassIdentifier: 
   shader: {fileID: 4807578003741378534, guid: 5de9f73a99485c04d8ea66ecd9144eb4, type: 3}
+  LightSamplePos:
+  - {x: 0, y: 18.45, z: 0}

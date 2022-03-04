@@ -17,6 +17,7 @@ float2 _FocusCameraSize;
 float _FocusCameraHalfAperture;
 CBUFFER_END
 
+Buffer<float3> _LightSamplePosBuffer;
 RaytracingAccelerationStructure _AccelerationStructure;
 
 struct RayIntersection

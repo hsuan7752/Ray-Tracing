@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 /// <summary>
 /// the output color tutorial.
@@ -12,22 +13,19 @@ public class Test : RayTracingTutorial
   /// the frame index.
   /// </summary>
   private int _frameIndex = 0;
-
   private readonly int _frameIndexShaderId = Shader.PropertyToID("_FrameIndex");
+  private readonly int _lightSamplePosBufferId = Shader.PropertyToID("_LightSamplePosBuffer");
 
+  public List<Vector3> LightSamplePos;
   /// <summary>
   /// constructor.
   /// </summary>
   /// <param name="asset">the tutorial asset.</param>
-  public Test(RayTracingTutorialAsset asset) : base(asset)
+  public Test(TestAsset asset) : base(asset)
   {
+    LightSamplePos = asset.LightSamplePos;
   }
 
-  /// <summary>
-  /// render.
-  /// </summary>
-  /// <param name="context">the render context.</param>
-  /// <param name="camera">the camera.</param>
   public override void Render(ScriptableRenderContext context, Camera camera)
   {
     base.Render(context, camera);
@@ -36,24 +34,22 @@ public class Test : RayTracingTutorial
 
     var accelerationStructure = _pipeline.RequestAccelerationStructure();
     var PRNGStates = _pipeline.RequirePRNGStates(camera);
-    var LightSample = _pipeline.RequirePRNGStates(camera);
-
+    var lightSamplePosBuffer = ((mRayTracingRenderPipeline)_pipeline).RequireComputeBuffer(_lightSamplePosBufferId, LightSamplePos);
     var cmd = CommandBufferPool.Get(typeof(OutputColorTutorial).Name);
     try
     {
-      if (_frameIndex < 10)
+      if (_frameIndex < 1000)
       {
         using (new ProfilingSample(cmd, "RayTracing"))
         {
           cmd.SetRayTracingShaderPass(_shader, "RayTracing");
           cmd.SetRayTracingAccelerationStructure(_shader, _pipeline.accelerationStructureShaderId,
             accelerationStructure);
-
-            
           cmd.SetRayTracingIntParam(_shader, _frameIndexShaderId, _frameIndex);
           cmd.SetRayTracingBufferParam(_shader, _PRNGStatesShaderId, PRNGStates);
           cmd.SetRayTracingTextureParam(_shader, _outputTargetShaderId, outputTarget);
           cmd.SetRayTracingVectorParam(_shader, _outputTargetSizeShaderId, outputTargetSize);
+          cmd.SetGlobalBuffer(_lightSamplePosBufferId, lightSamplePosBuffer);
           cmd.DispatchRays(_shader, "AntialiasingRayGenShader", (uint) outputTarget.rt.width,
             (uint) outputTarget.rt.height, 1, camera);
         }
@@ -75,4 +71,5 @@ public class Test : RayTracingTutorial
       CommandBufferPool.Release(cmd);
     }
   }
+ 
 }
