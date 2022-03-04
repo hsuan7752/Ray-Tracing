@@ -3,6 +3,8 @@
   Properties
   {
     _Color ("Main Color", Color) = (1, 1, 1, 1)
+    _Reflect ("Reflect", float) = 5
+    _Diffuse ("Diffuse", float) = 0.5
   }
   SubShader
   {
@@ -78,11 +80,25 @@
 
       CBUFFER_START(UnityPerMaterial)
       float4 _Color;
+      float _Reflect;
+      float _Diffuse;
       CBUFFER_END
 
       void FetchIntersectionVertex(uint vertexIndex, out IntersectionVertex outVertex)
       {
         outVertex.normalOS = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeNormal);
+      }
+
+      float3 GetRandomOnSphereByPow(inout uint4 states, float _pow)
+      {
+        float r1 = GetRandomValue(states);
+        float r2 = GetRandomValue(states);
+        r1 = pow(r1, _pow);
+        r2 = pow(r2, _pow);
+        float x = cos(2.0f * (float)M_PI * r1) * 2.0f * sqrt(r2 * (1.0f - r2));
+        float y = sin(2.0f * (float)M_PI * r1) * 2.0f * sqrt(r2 * (1.0f - r2));
+        float z = 1.0f - 2.0f * r2;
+        return float3(x / _pow, y, z / _pow);
       }
 
       [shader("closesthit")]
@@ -118,7 +134,13 @@
           // Make reflection ray.
           RayDesc rayDescriptor;
           rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-          rayDescriptor.Direction = normalize(normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates));
+          bool isSpeculiar = false;
+          if (GetRandomValue(rayIntersection.PRNGStates) < _Diffuse) {
+            rayDescriptor.Direction = normalize(normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates));
+          } else {
+            isSpeculiar = true;
+            rayDescriptor.Direction = reflect(-positionWS, normalWS) + GetRandomOnSphereByPow(rayIntersection.PRNGStates, _Reflect);
+          }
           rayDescriptor.TMin = 1e-5f;
           rayDescriptor.TMax = _CameraFarDistance;
 
@@ -135,6 +157,7 @@
           float r = reflectionRayIntersection.distance;
           if (r < 1) r = 1;
           subColor = reflectionRayIntersection.color / (r * r);
+          // if(isSpeculiar && _Diffuse > 0) subColor *= 1 + _Diffuse;
           subColor.a = 1.0;
         }
 
@@ -177,15 +200,11 @@
           }
           
           lightColor.a = 1.0;
-          // if (lightColor.x > 1.0) lightColor.x = 1.0;
-          // if (lightColor.y > 1.0) lightColor.y = 1.0;
-          // if (lightColor.z > 1.0) lightColor.z = 1.0;
+          // lightColor *= lightRate(lightPos, normalWS);
           rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
         }
-
-
+        
         rayIntersection.color = _Color * lightColor * 0.6f + subColor * 0.4f;
-        // rayIntersection.color = float4(1.0, 0.0, 1.0, 1.0);
         rayIntersection.type = 0;
         rayIntersection.distance = GetDistance();
       }

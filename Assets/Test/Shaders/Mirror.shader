@@ -180,6 +180,9 @@
         }
 
         rayIntersection.color = subColor * lightColor;
+          if (rayIntersection.color.x > 1.0) rayIntersection.color.x = 1.0;
+          if (rayIntersection.color.y > 1.0) rayIntersection.color.y = 1.0;
+          if (rayIntersection.color.z > 1.0) rayIntersection.color.z = 1.0;
         rayIntersection.type = 0;
         rayIntersection.distance = GetDistance();
       }
