@@ -190,6 +190,11 @@ PrefabInstance:
       propertyPath: m_Lightmapping
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: -1018664272722485354, guid: 21f38577bec66fa419332af8cf3ee87c,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 124045608129301797, guid: 21f38577bec66fa419332af8cf3ee87c,
         type: 3}
       propertyPath: m_IsActive
@@ -204,12 +209,12 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 65ef3962d1d785a4ab55385c45b8994a, type: 2}
+      objectReference: {fileID: 2100000, guid: 1651b844d9c27a64d8434ddc7bbf3ae9, type: 2}
     - target: {fileID: 8100320773420232829, guid: 21f38577bec66fa419332af8cf3ee87c,
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 65ef3962d1d785a4ab55385c45b8994a, type: 2}
+      objectReference: {fileID: 2100000, guid: 1651b844d9c27a64d8434ddc7bbf3ae9, type: 2}
     - target: {fileID: 9076169587571386673, guid: 21f38577bec66fa419332af8cf3ee87c,
         type: 3}
       propertyPath: m_Materials.Array.data[0]
