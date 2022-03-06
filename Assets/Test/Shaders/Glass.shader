@@ -1,5 +1,6 @@
-﻿Shader "Test/Glass"
+﻿Shader "Test/Glass_2"
 {
+  // Reference: https://samdriver.xyz/article/refraction-sphere
   Properties
   {
     _Color ("Main Color", Color) = (1, 1, 1, 1)
@@ -91,24 +92,26 @@
         outVertex.normalOS = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeNormal);
       }
 
-      inline bool refract2(float3 uv, float3 n, float niOverNt, out float3 refracted)
-      {
-        float dt = dot(uv, n);
-        float discriminant = 1.0f - niOverNt * niOverNt * (1 - dt * dt);
-        if (discriminant > 0)
-        {
-          refracted = niOverNt * (uv - n * dt) - n * sqrt(discriminant);
-          return true;
-        }
-        else
-          return false;
-      }
-
-      inline float schlick(float cosine, float IOR)
+      inline float schlick(float3 normal, float3 rayDirection, float IOR)
       {
         float r0 = (1.0f - IOR) / (1.0f + IOR);
         r0 = r0 * r0;
-        return r0 + (1.0f - r0) * pow((1.0f - cosine), 5.0f);
+        
+        float cosX = abs(dot(normal, rayDirection));
+
+        if (abs(cosX) < 0.0001) return 1;
+        if (1.0f > IOR)
+        {
+            IOR = 1.0f / IOR;
+            float sinT2 = IOR * IOR * (1.0 - cosX * cosX);
+            sinT2 *= 0.65;
+            // detect total internal reflection
+            if (sinT2 > 1.0) return sinT2;
+
+            cosX = sqrt(1.0 - sinT2);
+        }
+
+        return r0 + (1.0f - r0) * pow((1.0f - cosX), 1.0f);
       }
 
       [shader("closesthit")]
@@ -129,9 +132,11 @@
         // Get normal in world space.
         float3 normalOS = INTERPOLATE_RAYTRACING_ATTRIBUTE(v0.normalOS, v1.normalOS, v2.normalOS, barycentricCoordinates);
         float3x3 objectToWorld = (float3x3)ObjectToWorld3x4();
-        float3 normalWS = -normalize(mul(objectToWorld, normalOS));
+        float3 normalWS = normalize(mul(objectToWorld, normalOS));
 
         float4 color = float4(0, 0, 0, 1);
+          float3 scatteredDir;
+          float reflectProb;
         if (rayIntersection.remainingDepth > 0)
         {
           // Get position in world space.
@@ -143,68 +148,26 @@
           // Make reflection & refraction ray.
           float3 outwardNormal;
           float niOverNt;
-          float reflectProb;
           float cosine;
           // inside to outside
-          if (dot(-direction, normalWS) > 0.0f)
+          if (dot(-direction, normalWS)> 0.0f)
           {
             outwardNormal = normalWS;
             niOverNt = 1.0f / _IOR;
-            cosine = _IOR * dot(-direction, normalWS);
+            reflectProb = schlick(outwardNormal, direction, niOverNt);
           }
           // outside to inside
           else
           {
             outwardNormal = -normalWS;
             niOverNt = _IOR;
-            cosine = -dot(-direction, normalWS);
+            reflectProb = schlick(outwardNormal, direction, niOverNt);
           }
-          reflectProb = schlick(cosine, _IOR);
 
-          float3 scatteredDir;
-          float4 lightColor = float4(1, 1, 1, 1);
-          if (GetRandomValue(rayIntersection.PRNGStates) < reflectProb ||
-              !refract2(direction, outwardNormal, niOverNt, scatteredDir)) {
+          scatteredDir = refract(direction, outwardNormal, niOverNt);
+          if (GetRandomValue(rayIntersection.PRNGStates) < reflectProb * 0.5)
             scatteredDir = reflect(direction, normalWS);
-            
-            if (rayIntersection.remainingDepth > 0) {
-              float3 origin = WorldRayOrigin();
-              float3 direction = WorldRayDirection();
-              float t = RayTCurrent();
-              float3 positionWS = origin + direction * t;
-
-              uint numStructs;
-              _LightSamplePosBuffer.GetDimensions(numStructs);
-
-              // Make reflection ray.
-              RayDesc rayDescriptor;
-              rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-              rayDescriptor.TMin = 1e-5f;
-              rayDescriptor.TMax = _CameraFarDistance;
-        
-
-
-              uint lightIdx = GetRandomValue(rayIntersection.PRNGStates) * numStructs;
-              // Tracing reflection.
-              RayIntersection shadowRayIntersection;
-              shadowRayIntersection.PRNGStates = rayIntersection.PRNGStates;
-              shadowRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
-              shadowRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-              shadowRayIntersection.type = 0;
-
-              float3 lightPos = _LightSamplePosBuffer[lightIdx];
-              rayDescriptor.Direction = lightPos - positionWS;
-
-              TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, shadowRayIntersection);
-              if (shadowRayIntersection.type == 1) {
-                float r = shadowRayIntersection.distance;
-                lightColor = shadowRayIntersection.color / (r * r);
-              }
-              lightColor.a = 1.0;
-              rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
-            }
-          }
-
+          
           RayDesc rayDescriptor;
           rayDescriptor.Origin = positionWS + 1e-5f * scatteredDir;
           rayDescriptor.Direction = scatteredDir;
@@ -220,9 +183,10 @@
           TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
 
           rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
-          color = reflectionRayIntersection.color * lightColor;
+          float r = reflectionRayIntersection.distance;
+          if (r < 1) r = 1;
+          color = reflectionRayIntersection.color / (r * r);
         }
-
 
         rayIntersection.color = _Color * color;
         rayIntersection.type = 0;
