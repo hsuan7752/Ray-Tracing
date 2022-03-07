@@ -49,7 +49,7 @@ void AntialiasingRayGenShader()
   
   rayIntersection.type = 2;
   TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
-  // finalColor.xyz *= (rayIntersection.color.x * 0.3 + 0.7);
+  finalColor.xyz *= (rayIntersection.color.x * 0.3 + 0.7);
 
   PRNGStates = rayIntersection.PRNGStates;
 
