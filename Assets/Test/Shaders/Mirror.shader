@@ -115,7 +115,7 @@
           // Make reflection ray.
           RayDesc rayDescriptor;
           rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-          rayDescriptor.Direction = reflect(-positionWS, normalWS);
+          rayDescriptor.Direction = reflect(-direction, normalWS);
           rayDescriptor.TMin = 1e-5f;
           rayDescriptor.TMax = _CameraFarDistance;
 

@@ -234,8 +234,7 @@ Shader "RayTracing/Stardard"
           bool isSpeculiar = false;
           if (GetRandomValue(rayIntersection.PRNGStates) < _Metallic) {
             isSpeculiar = true;
-            rayDescriptor.Direction = normalize(reflect(-positionWS, normalWS) + GetRandomOnSphereByPow(rayIntersection.PRNGStates, (1 - _Glossiness) * 2 * 3.14));
-            rayDescriptor.Direction = normalize(reflect(-positionWS, normalWS));
+            rayDescriptor.Direction = normalize(reflect(direction, normalWS) + GetRandomOnSphereByPow(rayIntersection.PRNGStates, _Glossiness * 2 * 3.14));
           } else {
             rayDescriptor.Direction = normalize(normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates));
           }
@@ -252,11 +251,14 @@ Shader "RayTracing/Stardard"
           TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
 
           rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
-          if (reflectionRayIntersection.type >= 0) {
+          if (reflectionRayIntersection.type == 0) {
             float r = reflectionRayIntersection.distance;
             if (r < 1) r = 1;
+            if (isSpeculiar) {
+              r = 1;
+              rayIntersection.distance += reflectionRayIntersection.distance;
+            }
             rayIntersection.color = color * reflectionRayIntersection.color / (r * r);
-            // rayIntersection.color = float4(1, 1, 0, 0);
           }
         } 
         // trasparent
