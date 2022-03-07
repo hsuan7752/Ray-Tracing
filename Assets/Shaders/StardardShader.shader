@@ -2,12 +2,13 @@ Shader "RayTracing/Stardard"
 {
     Properties
     {
-        _Color ("Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
-        _Normal ("Normal Map (RGB)", 2D) = "white" {}
-        _Glossiness ("Smoothness", Range(0,1)) = 0.5
-        _Metallic ("Metallic", Range(0,1)) = 0.0
-        _IOR ("IOR", float) = 1
+      _Color ("Color", Color) = (1,1,1,1)
+      _MainTex ("Albedo (RGB)", 2D) = "white" {}
+      _Normal ("Normal Map (RGB)", 2D) = "white" {}
+      _Glossiness ("Smoothness", Range(0,1)) = 0.5
+      _Metallic ("Metallic", Range(0,1)) = 0.0
+      _IOR ("IOR", float) = 1
+      _MaxLength ("MaxLength", float) = 1
     }
     SubShader
     {
@@ -78,6 +79,7 @@ Shader "RayTracing/Stardard"
       float _Glossiness;
       float _Metallic;
       float _IOR;
+      float _MaxLength;
       Texture2D<float4> _MainTex;
       SamplerState sampler_MainTex
       {
@@ -162,19 +164,40 @@ Shader "RayTracing/Stardard"
 
         float4 color = textureColor * _Color;
 
+        // Get position in world space.
+        float3 origin = WorldRayOrigin();
+        float3 direction = WorldRayDirection();
+        float t = RayTCurrent();
+        float3 positionWS = origin + direction * t;
+
         if (rayIntersection.remainingDepth <= 0) 
         {
           rayIntersection.color = float4(0, 0, 0, 1);
         }
+        else if (rayIntersection.type == 2) {
+          // Make reflection ray.
+          RayDesc rayDescriptor;
+          rayDescriptor.Origin = positionWS + 0.001f * normalWS;
+          rayDescriptor.Direction = normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates);
+          rayDescriptor.TMin = 1e-5f;
+          rayDescriptor.TMax = _MaxLength;
+
+          // Tracing reflection.
+          RayIntersection reflectionRayIntersection;
+          reflectionRayIntersection.remainingDepth = 0;
+          reflectionRayIntersection.PRNGStates = rayIntersection.PRNGStates;
+          reflectionRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
+          reflectionRayIntersection.distance = _MaxLength + 1;
+
+          TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
+          float r = reflectionRayIntersection.distance;
+          if (r <= _MaxLength) rayIntersection.color = float4(0, 0, 0, 1);
+          else rayIntersection.color = float4(1, 1, 1, 1);
+          rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
+        }
         else if (GetRandomValue(rayIntersection.PRNGStates) < color.a) {
           // reflect
           if (GetRandomValue(rayIntersection.PRNGStates) < 0.4) {
-            // Get position in world space.
-            float3 origin = WorldRayOrigin();
-            float3 direction = WorldRayDirection();
-            float t = RayTCurrent();
-            float3 positionWS = origin + direction * t;
-
             // Make reflection ray.
             RayDesc rayDescriptor;
             rayDescriptor.Origin = positionWS + 0.001f * normalWS;
@@ -205,12 +228,6 @@ Shader "RayTracing/Stardard"
           // self color
           else {
             float4 lightColor = float4(0, 0, 0, 1);
-            // shadow ray
-            float3 origin = WorldRayOrigin();
-            float3 direction = WorldRayDirection();
-            float t = RayTCurrent();
-            float3 positionWS = origin + direction * t;
-
             // Make reflection ray.
             RayDesc rayDescriptor;
             rayDescriptor.Origin = positionWS + 0.001f * normalWS;
@@ -243,12 +260,6 @@ Shader "RayTracing/Stardard"
         } 
         // trasparent
         else {
-          // Get position in world space.
-          float3 origin = WorldRayOrigin();
-          float3 direction = WorldRayDirection();
-          float t = RayTCurrent();
-          float3 positionWS = origin + direction * t;
-
           // Make reflection & refraction ray.
           float3 outwardNormal;
           float niOverNt;

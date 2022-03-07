@@ -39,23 +39,21 @@ void AntialiasingRayGenShader()
 
     RayIntersection rayIntersection;
     rayIntersection.remainingDepth = MAX_DEPTH - 1;
-    rayIntersection.remainingDepth = 10;
+    rayIntersection.remainingDepth = 5;
     rayIntersection.PRNGStates = PRNGStates;
     rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
-    PRNGStates = rayIntersection.PRNGStates;
+    rayIntersection.type = 2;
     float r = rayIntersection.distance;
     if (r < 1) r = 1;
-    finalColor = rayIntersection.color / (r * r);
-    //finalColor = float4(
-    //  clamp(0.0f, 1.0f, rayIntersection.color.r),
-    //  clamp(0.0f, 1.0f, rayIntersection.color.g),
-    //  clamp(0.0f, 1.0f, rayIntersection.color.b),
-    //  clamp(0.0f, 1.0f, rayIntersection.color.a));
+    finalColor += rayIntersection.color / (r * r);
+    
+    TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
+    finalColor.xyz *= (rayIntersection.color.x * 0.3 + 0.7);
+
+    PRNGStates = rayIntersection.PRNGStates;
   }
-  //finalColor /= (float)NUM_OF_SAMPLES;
-  // finalColor = float4(sqrt(finalColor.r), sqrt(finalColor.g), sqrt(finalColor.b), finalColor.a);
 
   _PRNGStates[PRNGIndex] = PRNGStates;
   if (_FrameIndex > 1)
