@@ -45,7 +45,9 @@ void AntialiasingRayGenShader()
 
     TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
     PRNGStates = rayIntersection.PRNGStates;
-    finalColor = rayIntersection.color;
+    float r = rayIntersection.distance;
+    if (r < 1) r = 1;
+    finalColor = rayIntersection.color / (r * r);
     //finalColor = float4(
     //  clamp(0.0f, 1.0f, rayIntersection.color.r),
     //  clamp(0.0f, 1.0f, rayIntersection.color.g),
