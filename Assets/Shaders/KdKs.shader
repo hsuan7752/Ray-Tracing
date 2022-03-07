@@ -1,14 +1,14 @@
-Shader "RayTracing/Stardard"
+Shader "RayTracing/KdKs"
 {
     Properties
     {
       _Color ("Color", Color) = (1,1,1,1)
       _MainTex ("Albedo (RGB)", 2D) = "white" {}
       _Normal ("Normal Map (RGB)", 2D) = "gray" {}
+      _Diffuse_Color ("Diffuse Color", Color) = (1,1,1,1)
+      _Specular_Color ("Specular Color", Color) = (1,1,1,1)
       _Glossiness ("Smoothness", Range(0,1)) = 0.5
       _Metallic ("Metallic", Range(0,1)) = 0.0
-      _IOR ("IOR", float) = 1
-      _MaxLength ("MaxLength", float) = 1
     }
     SubShader
     {
@@ -74,12 +74,11 @@ Shader "RayTracing/Stardard"
       };
 
       CBUFFER_START(UnityPerMaterial)
-      // sampler2D _MainTex;
       float4 _Color;
+      float4 _Diffuse_Color;
+      float4 _Specular_Color;
       float _Glossiness;
       float _Metallic;
-      float _IOR;
-      float _MaxLength;
       Texture2D<float4> _MainTex;
       SamplerState sampler_MainTex
       {
@@ -100,6 +99,12 @@ Shader "RayTracing/Stardard"
       {
         outVertex.normalOS = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeNormal);
         outVertex.uv0 = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeTexCoord0);
+      }
+
+      float ScatteringPDF(float3 inOrigin, float3 inDirection, float inT, float3 hitNormal, float3 scatteredDir)
+      {
+        float cosine = dot(hitNormal, scatteredDir);
+        return max(0.0f, cosine / M_PI);
       }
 
       float3 GetRandomOnSphereByPow(inout uint4 states, float _pow)
@@ -172,29 +177,12 @@ Shader "RayTracing/Stardard"
 
         uint numStructs;
         _LightSamplePosBuffer.GetDimensions(numStructs);
+        uint lightIdx = GetRandomValue(rayIntersection.PRNGStates) * numStructs;
+        float3 lightPos = _LightSamplePosBuffer[lightIdx];
   
         rayIntersection.color = float4(0, 0, 0, 1);
         rayIntersection.distance = GetDistance();
         if (rayIntersection.remainingDepth <= 0) {}
-        else if (rayIntersection.type == 2) {
-          // Make reflection ray.
-          RayDesc rayDescriptor;
-          rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-          rayDescriptor.Direction = normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates);
-          rayDescriptor.TMin = 1e-5f;
-          rayDescriptor.TMax = _MaxLength;
-
-          // Tracing reflection.
-          RayIntersection ambientRayIntersection;
-          ambientRayIntersection.remainingDepth = 0;
-          ambientRayIntersection.PRNGStates = rayIntersection.PRNGStates;
-          ambientRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-
-          TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, ambientRayIntersection);
-          rayIntersection.PRNGStates = ambientRayIntersection.PRNGStates;
-          if (ambientRayIntersection.type >= 0) rayIntersection.color = float4(0, 0, 0, 1);
-          else rayIntersection.color = float4(1, 1, 1, 1);
-        }
         // self color
         else if (GetRandomValue(rayIntersection.PRNGStates) < 0.6 * (1 - _Metallic)) {
           float4 lightColor = float4(0, 0, 0, 1);
@@ -211,8 +199,6 @@ Shader "RayTracing/Stardard"
           shadowRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
           shadowRayIntersection.type = 0;
 
-          uint lightIdx = GetRandomValue(rayIntersection.PRNGStates) * numStructs;
-          float3 lightPos = _LightSamplePosBuffer[lightIdx];
           rayDescriptor.Direction = lightPos - positionWS;
 
           TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, shadowRayIntersection);
@@ -227,87 +213,11 @@ Shader "RayTracing/Stardard"
           rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
         }
         // reflect
-        else if (GetRandomValue(rayIntersection.PRNGStates) < color.a) {
-          // Make reflection ray.
-          RayDesc rayDescriptor;
-          rayDescriptor.Origin = positionWS + 0.001f * normalWS;
-          bool isSpeculiar = false;
-          if (GetRandomValue(rayIntersection.PRNGStates) < _Metallic) {
-            isSpeculiar = true;
-            rayDescriptor.Direction = normalize(reflect(direction, normalWS) + GetRandomOnSphereByPow(rayIntersection.PRNGStates, _Glossiness * 2 * 3.14));
-          } else {
-            rayDescriptor.Direction = normalize(normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates));
-          }
-          rayDescriptor.TMin = 1e-5f;
-          rayDescriptor.TMax = _CameraFarDistance;
-
-          // Tracing reflection.
-          RayIntersection reflectionRayIntersection;
-          reflectionRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
-          reflectionRayIntersection.PRNGStates = rayIntersection.PRNGStates;
-          reflectionRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-          reflectionRayIntersection.type = 0;
-
-          TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
-
-          rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
-          if (reflectionRayIntersection.type == 0) {
-            float r = reflectionRayIntersection.distance;
-            if (r < 1) r = 1;
-            if (isSpeculiar) {
-              r = 1;
-              rayIntersection.distance += reflectionRayIntersection.distance;
-            }
-            rayIntersection.color = color * reflectionRayIntersection.color / (r * r);
-          }
-        } 
-        // trasparent
-        else {
-          // Make reflection & refraction ray.
-          float3 outwardNormal;
-          float niOverNt;
-          float cosine;
-          float3 scatteredDir;
-          float reflectProb;
-          // inside to outside
-          if (dot(-direction, normalWS)> 0.0f)
-          {
-            outwardNormal = normalWS;
-            niOverNt = 1.0f / _IOR;
-            reflectProb = schlick(outwardNormal, direction, niOverNt);
-          }
-          // outside to inside
-          else
-          {
-            outwardNormal = -normalWS;
-            niOverNt = _IOR;
-            reflectProb = schlick(outwardNormal, direction, niOverNt);
-          }
-
-          scatteredDir = refract(direction, outwardNormal, niOverNt);
-          if (GetRandomValue(rayIntersection.PRNGStates) < reflectProb * 0.35)
-            scatteredDir = reflect(direction, normalWS);
+        else if (GetRandomValue(rayIntersection.PRNGStates)) {
+          float t = abs(dot(normalize(normalWS), normalize(positionWS - lightPos)));
+          t = pow(t, 5);
+          rayIntersection.color = _Specular_Color * t + _Diffuse_Color * (1 - t);
           
-          RayDesc rayDescriptor;
-          rayDescriptor.Origin = positionWS + 1e-5f * scatteredDir;
-          rayDescriptor.Direction = scatteredDir;
-          rayDescriptor.TMin = 1e-5f;
-          rayDescriptor.TMax = _CameraFarDistance;
-
-          // Tracing reflection.
-          RayIntersection refractionRayIntersection;
-          refractionRayIntersection.remainingDepth = rayIntersection.remainingDepth - 1;
-          refractionRayIntersection.PRNGStates = rayIntersection.PRNGStates;
-          refractionRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-
-          TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, refractionRayIntersection);
-          rayIntersection.PRNGStates = refractionRayIntersection.PRNGStates;
-          if (refractionRayIntersection.type >= 0) {
-            float r = refractionRayIntersection.distance;
-            if (r < 1) r = 1;
-            rayIntersection.distance += refractionRayIntersection.distance;
-            rayIntersection.color = color * refractionRayIntersection.color;
-          } 
         }
         rayIntersection.color.a = 1;
         rayIntersection.type = 0;

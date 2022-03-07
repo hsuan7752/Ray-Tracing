@@ -9,6 +9,7 @@
 RWTexture2D<float4> _OutputTarget;
 float4 _OutputTargetSize;
 int _FrameIndex;
+int _SamplingCountOneSide;
 
 inline float3 BackgroundColor(float3 origin, float3 direction)
 {
@@ -24,38 +25,33 @@ void AntialiasingRayGenShader()
   uint4 PRNGStates = _PRNGStates[PRNGIndex];
 
   float4 finalColor = float4(0, 0, 0, 0);
-  //for (int i = 0; i < NUM_OF_SAMPLES; ++i)
-  {
-    float3 origin;
-    float3 direction;
-    float2 offset = float2(GetRandomValue(PRNGStates), GetRandomValue(PRNGStates));
-    GenerateCameraRayWithOffset(origin, direction, offset);
+  float3 origin;
+  float3 direction;
+  float2 offset = float2(GetRandomValue(PRNGStates), GetRandomValue(PRNGStates));
+  offset = offset / _SamplingCountOneSide + float2(_FrameIndex / _SamplingCountOneSide, _FrameIndex % _SamplingCountOneSide)/ _SamplingCountOneSide;
+  GenerateCameraRayWithOffset(origin, direction, offset);
 
-    RayDesc rayDescriptor;
-    rayDescriptor.Origin = origin;
-    rayDescriptor.Direction = direction;
-    rayDescriptor.TMin = 1e-5f;
-    rayDescriptor.TMax = _CameraFarDistance;
+  RayDesc rayDescriptor;
+  rayDescriptor.Origin = origin;
+  rayDescriptor.Direction = direction;
+  rayDescriptor.TMin = 1e-5f;
+  rayDescriptor.TMax = _CameraFarDistance;
 
-    RayIntersection rayIntersection;
-    rayIntersection.remainingDepth = MAX_DEPTH - 1;
-    rayIntersection.remainingDepth = 5;
-    rayIntersection.PRNGStates = PRNGStates;
-    rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
+  RayIntersection rayIntersection;
+  rayIntersection.remainingDepth = MAX_DEPTH - 1;
+  rayIntersection.remainingDepth = 5;
+  rayIntersection.PRNGStates = PRNGStates;
+  rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
-    PRNGStates = rayIntersection.PRNGStates;
-    float r = rayIntersection.distance;
-    if (r < 1) r = 1;
-    finalColor = rayIntersection.color / (r * r);
-    //finalColor = float4(
-    //  clamp(0.0f, 1.0f, rayIntersection.color.r),
-    //  clamp(0.0f, 1.0f, rayIntersection.color.g),
-    //  clamp(0.0f, 1.0f, rayIntersection.color.b),
-    //  clamp(0.0f, 1.0f, rayIntersection.color.a));
-  }
-  //finalColor /= (float)NUM_OF_SAMPLES;
-  // finalColor = float4(sqrt(finalColor.r), sqrt(finalColor.g), sqrt(finalColor.b), finalColor.a);
+  rayIntersection.type = 0;
+  TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
+  finalColor = rayIntersection.color;
+  
+  rayIntersection.type = 2;
+  TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, rayIntersection);
+  finalColor.xyz *= (rayIntersection.color.x * 0.3 + 0.7);
+
+  PRNGStates = rayIntersection.PRNGStates;
 
   _PRNGStates[PRNGIndex] = PRNGStates;
   if (_FrameIndex > 1)
@@ -73,5 +69,6 @@ void MissShader(inout RayIntersection rayIntersection : SV_RayPayload)
   float3 origin = WorldRayOrigin();
   float3 direction = WorldRayDirection();
   rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-  // rayIntersection.color = float4(BackgroundColor(origin, direction), 1.0f);
+  rayIntersection.type = -1;
+  rayIntersection.distance = _CameraFarDistance + 1;
 }

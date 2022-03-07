@@ -20,6 +20,11 @@ public class TestAsset : RayTracingTutorialAsset
         LightSamplePos.Add(new Vector3(x, 1.8f, z));
       }
     }
+    // for (float x=-0.5f; x<=0.5f; x+=0.01f) {
+    //   for (float z=-0.5f; z<=0.5f; z+=0.01f) {
+    //     LightSamplePos.Add(new Vector3(x, 1.845f, z));
+    //   }
+    // }
 
     return new Test(this);
   }

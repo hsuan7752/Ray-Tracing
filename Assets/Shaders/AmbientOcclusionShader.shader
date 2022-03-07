@@ -122,11 +122,11 @@ Shader "RayTracing/AO"
           reflectionRayIntersection.remainingDepth = 0;
           reflectionRayIntersection.PRNGStates = rayIntersection.PRNGStates;
           reflectionRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-          reflectionRayIntersection.type = 0;
+          reflectionRayIntersection.distance = _MaxLength + 1;
 
           TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
           float r = reflectionRayIntersection.distance;
-          if (reflectionRayIntersection.type == 2) rayIntersection.color = float4(0, 0, 0, 1);
+          if (r <= _MaxLength) rayIntersection.color = float4(0, 0, 0, 1);
           else rayIntersection.color = float4(1, 1, 1, 1);
           rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
         }
