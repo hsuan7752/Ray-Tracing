@@ -9,6 +9,7 @@
 RWTexture2D<float4> _OutputTarget;
 float4 _OutputTargetSize;
 int _FrameIndex;
+int _SamplingCountOneSide;
 
 inline float3 BackgroundColor(float3 origin, float3 direction)
 {
@@ -29,6 +30,7 @@ void AntialiasingRayGenShader()
     float3 origin;
     float3 direction;
     float2 offset = float2(GetRandomValue(PRNGStates), GetRandomValue(PRNGStates));
+    offset = offset / _SamplingCountOneSide + float2(_FrameIndex / _SamplingCountOneSide, _FrameIndex % _SamplingCountOneSide)/ _SamplingCountOneSide;
     GenerateCameraRayWithOffset(origin, direction, offset);
 
     RayDesc rayDescriptor;
@@ -71,5 +73,6 @@ void MissShader(inout RayIntersection rayIntersection : SV_RayPayload)
   float3 origin = WorldRayOrigin();
   float3 direction = WorldRayDirection();
   rayIntersection.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-  // rayIntersection.color = float4(BackgroundColor(origin, direction), 1.0f);
+  rayIntersection.type = -1;
+  rayIntersection.distance = _CameraFarDistance + 1;
 }

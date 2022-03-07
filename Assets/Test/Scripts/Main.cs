@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.IO;
+using UnityEngine;
 using UnityEngine.Rendering;
 using System.Collections.Generic;
 
@@ -13,8 +14,10 @@ public class Test : RayTracingTutorial
   /// the frame index.
   /// </summary>
   private int _frameIndex = 0;
+  public const int SamplingCountOneSide = 300;
   private readonly int _frameIndexShaderId = Shader.PropertyToID("_FrameIndex");
   private readonly int _lightSamplePosBufferId = Shader.PropertyToID("_LightSamplePosBuffer");
+  private readonly int _samplingCountOneSideId = Shader.PropertyToID("_SamplingCountOneSide");
 
   public List<Vector3> LightSamplePos;
   /// <summary>
@@ -38,7 +41,7 @@ public class Test : RayTracingTutorial
     var cmd = CommandBufferPool.Get(typeof(OutputColorTutorial).Name);
     try
     {
-      if (_frameIndex < 1000)
+      if (_frameIndex < SamplingCountOneSide * SamplingCountOneSide)
       {
         using (new ProfilingSample(cmd, "RayTracing"))
         {
@@ -46,6 +49,7 @@ public class Test : RayTracingTutorial
           cmd.SetRayTracingAccelerationStructure(_shader, _pipeline.accelerationStructureShaderId,
             accelerationStructure);
           cmd.SetRayTracingIntParam(_shader, _frameIndexShaderId, _frameIndex);
+          cmd.SetRayTracingIntParam(_shader, _samplingCountOneSideId, SamplingCountOneSide);
           cmd.SetRayTracingBufferParam(_shader, _PRNGStatesShaderId, PRNGStates);
           cmd.SetRayTracingTextureParam(_shader, _outputTargetShaderId, outputTarget);
           cmd.SetRayTracingVectorParam(_shader, _outputTargetSizeShaderId, outputTargetSize);
@@ -57,11 +61,27 @@ public class Test : RayTracingTutorial
         context.ExecuteCommandBuffer(cmd);
         if (camera.cameraType == CameraType.Game)
           _frameIndex++;
-      }
 
-      using (new ProfilingSample(cmd, "FinalBlit"))
-      {
-        cmd.Blit(outputTarget, BuiltinRenderTextureType.CameraTarget, Vector2.one, Vector2.zero);
+        using (new ProfilingSample(cmd, "FinalBlit"))
+        {
+          cmd.Blit(outputTarget, BuiltinRenderTextureType.CameraTarget, Vector2.one, Vector2.zero);
+
+          if (_frameIndex % 100 == 0) {
+            // RenderTexture outputRenderTexture = RenderTexture.active;
+            // var scale = RTHandles.rtHandleProperties.rtHandleScale;
+            // cmd.Blit(outputTarget, outputRenderTexture, new Vector2(scale.x, scale.y), Vector2.zero, 0, 0);
+
+            Texture2D tex = new Texture2D(camera.pixelWidth, camera.pixelHeight, TextureFormat.RGB24, false);
+            // // ReadPixels looks at the active RenderTexture.
+            // RenderTexture.active = outputRenderTexture;
+            tex.ReadPixels(new Rect(0, 0, camera.pixelWidth, camera.pixelHeight), 0, 0);
+            tex.Apply();
+
+            string path = Application.dataPath + "/" + _frameIndex + ".png";
+            Debug.Log(path);
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+          }
+        }
       }
 
       context.ExecuteCommandBuffer(cmd);
