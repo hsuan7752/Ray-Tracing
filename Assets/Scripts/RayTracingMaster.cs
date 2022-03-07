@@ -14,7 +14,7 @@ public class RayTracingMaster : MonoBehaviour
     public uint SpheresMax = 100;
     public float SpherePlacementRadius = 100.0f;
 
-    private Camera _camera;
+    static private Camera _camera;
     private float _lastFieldOfView;
     private RenderTexture _target;
     private RenderTexture _converged;
@@ -30,9 +30,6 @@ public class RayTracingMaster : MonoBehaviour
     private ComputeBuffer _meshObjectBuffer;
     private ComputeBuffer _vertexBuffer;
     private ComputeBuffer _indexBuffer;
-
-    [Header("Objects")]
-    public GameObject Object;
 
     struct MeshObject
     {
@@ -314,5 +311,11 @@ public class RayTracingMaster : MonoBehaviour
         RebuildMeshObjectBuffers();
         SetShaderParameters();
         Render(destination);
+    }
+
+    static public void SetCamera(Vector3 pos, Quaternion rot)
+    {
+        _camera.transform.position = pos;
+        _camera.transform.rotation = rot;
     }
 }

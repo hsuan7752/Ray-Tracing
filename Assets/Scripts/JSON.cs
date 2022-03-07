@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using UnityEditor;
@@ -10,21 +9,12 @@ public class JSON : MonoBehaviour
 
     static Data[] datas;
 
-    // Start is called before the first frame update
-    void Start()
+    static public Data[] Load()
     {
-        Debug.Log("The file has been start.");
-        //path = Application.dataPath;
-
-        Load();
-    }
-
-    public Data[] Load()
-    {
-        Debug.Log("The file has been load.");
-        if (!File.Exists(path + "/record.json"))
+        //Debug.Log("The file has been load.");
+        if (!File.Exists(path))
             return null;
-        string jsonInfo = File.ReadAllText(path + "/record.json");
+        string jsonInfo = File.ReadAllText(path);
         datas = JsonHelper.FromJson<Data>(jsonInfo);
 
         return datas;
@@ -72,7 +62,8 @@ public class JSON : MonoBehaviour
     public void getPath()
     {
         path = EditorUtility.OpenFilePanel("Overwrite with json", "", "json");
-        Debug.Log(path);
+        datas = Load();
+        RayTracingMaster.SetCamera(datas[0].cameraPosition, datas[0].cameraRotation);
     }
 }
 
