@@ -156,7 +156,7 @@ Shader "RayTracing/Stardard"
         float3 normalMapOS = _Normal.SampleLevel(sampler_Normal, uv0, 0).xyz * 2 - float3(1, 1, 1);
         
         // Get normal in world space.
-        normalOS = normalize(normalMapOS * normalOS);
+        normalOS = normalize(normalMapOS + normalOS);
         float3x3 objectToWorld = (float3x3)ObjectToWorld3x4();
         float3 normalWS = normalize(mul(objectToWorld, normalOS));
 

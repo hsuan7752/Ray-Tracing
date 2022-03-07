@@ -3,6 +3,7 @@
   Properties
   {
     _Color ("Main Color", Color) = (1, 1, 1, 1)
+    _Intensity ("Intensity", float) = 1
   }
   SubShader
   {
@@ -78,6 +79,7 @@
 
       CBUFFER_START(UnityPerMaterial)
       float4 _Color;
+      float _Intensity;
       CBUFFER_END
 
       void FetchIntersectionVertex(uint vertexIndex, out IntersectionVertex outVertex)
@@ -88,7 +90,7 @@
       [shader("closesthit")]
       void ClosestHitShader(inout RayIntersection rayIntersection : SV_RayPayload, AttributeData attributeData : SV_IntersectionAttributes)
       {
-        rayIntersection.color = _Color ;
+        rayIntersection.color = _Color * _Intensity;
         rayIntersection.type = 1;
         rayIntersection.distance = GetDistance();
       }

@@ -76,6 +76,7 @@
       {
         // Object space normal of the vertex
         float3 normalOS;
+        float2 uv0;
       };
 
       CBUFFER_START(UnityPerMaterial)
@@ -87,6 +88,7 @@
       void FetchIntersectionVertex(uint vertexIndex, out IntersectionVertex outVertex)
       {
         outVertex.normalOS = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeNormal);
+        outVertex.uv0 = UnityRayTracingFetchVertexAttribute3(vertexIndex, kVertexAttributeTexCoord0);
       }
 
       float3 GetRandomOnSphereByPow(inout uint4 states, float _pow)
@@ -204,6 +206,8 @@
           rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
         }
         
+        float2 uv0 = INTERPOLATE_RAYTRACING_ATTRIBUTE(v0.uv0, v1.uv0, v2.uv0, barycentricCoordinates);
+
         rayIntersection.color = _Color * lightColor * 0.6f + subColor * 0.4f;
         rayIntersection.type = 0;
         rayIntersection.distance = GetDistance();
