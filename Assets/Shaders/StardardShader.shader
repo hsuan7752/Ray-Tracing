@@ -4,7 +4,7 @@ Shader "RayTracing/Stardard"
     {
       _Color ("Color", Color) = (1,1,1,1)
       _MainTex ("Albedo (RGB)", 2D) = "white" {}
-      _Normal ("Normal Map (RGB)", 2D) = "white" {}
+      _Normal ("Normal Map (RGB)", 2D) = "gray" {}
       _Glossiness ("Smoothness", Range(0,1)) = 0.5
       _Metallic ("Metallic", Range(0,1)) = 0.0
       _IOR ("IOR", float) = 1
@@ -158,7 +158,7 @@ Shader "RayTracing/Stardard"
         float3 normalMapOS = _Normal.SampleLevel(sampler_Normal, uv0, 0).xyz * 2 - float3(1, 1, 1);
         
         // Get normal in world space.
-        normalOS = normalize(normalMapOS + normalOS);
+        // normalOS = normalize(normalMapOS + normalOS);
         float3x3 objectToWorld = (float3x3)ObjectToWorld3x4();
         float3 normalWS = normalize(mul(objectToWorld, normalOS));
 
@@ -196,7 +196,7 @@ Shader "RayTracing/Stardard"
           else rayIntersection.color = float4(1, 1, 1, 1);
         }
         // self color
-        else if (GetRandomValue(rayIntersection.PRNGStates) < 0.0 + 0.6 * color.a) {
+        else if (GetRandomValue(rayIntersection.PRNGStates) < 0.6 * (1 - _Metallic)) {
           float4 lightColor = float4(0, 0, 0, 1);
           // Make reflection ray.
           RayDesc rayDescriptor;
@@ -235,6 +235,7 @@ Shader "RayTracing/Stardard"
           if (GetRandomValue(rayIntersection.PRNGStates) < _Metallic) {
             isSpeculiar = true;
             rayDescriptor.Direction = normalize(reflect(-positionWS, normalWS) + GetRandomOnSphereByPow(rayIntersection.PRNGStates, (1 - _Glossiness) * 2 * 3.14));
+            rayDescriptor.Direction = normalize(reflect(-positionWS, normalWS));
           } else {
             rayDescriptor.Direction = normalize(normalWS + GetRandomOnUnitSphere(rayIntersection.PRNGStates));
           }
@@ -304,7 +305,7 @@ Shader "RayTracing/Stardard"
             if (r < 1) r = 1;
             rayIntersection.distance += refractionRayIntersection.distance;
             rayIntersection.color = color * refractionRayIntersection.color;
-          } //else {rayIntersection.color = color;}
+          } 
         }
         rayIntersection.color.a = 1;
         rayIntersection.type = 0;
