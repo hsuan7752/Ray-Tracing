@@ -169,11 +169,9 @@ Shader "RayTracing/Stardard"
         float3 direction = WorldRayDirection();
         float t = RayTCurrent();
         float3 positionWS = origin + direction * t;
-
-        if (rayIntersection.remainingDepth <= 0) 
-        {
-          rayIntersection.color = float4(0, 0, 0, 1);
-        }
+  
+        rayIntersection.color = float4(1, 0, 0, 1);
+        if (rayIntersection.remainingDepth <= 0) {}
         else if (rayIntersection.type == 2) {
           // Make reflection ray.
           RayDesc rayDescriptor;
@@ -183,17 +181,15 @@ Shader "RayTracing/Stardard"
           rayDescriptor.TMax = _MaxLength;
 
           // Tracing reflection.
-          RayIntersection reflectionRayIntersection;
-          reflectionRayIntersection.remainingDepth = 0;
-          reflectionRayIntersection.PRNGStates = rayIntersection.PRNGStates;
-          reflectionRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-          reflectionRayIntersection.distance = _MaxLength + 1;
+          RayIntersection ambientRayIntersection;
+          ambientRayIntersection.remainingDepth = 0;
+          ambientRayIntersection.PRNGStates = rayIntersection.PRNGStates;
+          ambientRayIntersection.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-          TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
-          float r = reflectionRayIntersection.distance;
-          if (r <= _MaxLength) rayIntersection.color = float4(0, 0, 0, 1);
+          TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, ambientRayIntersection);
+          rayIntersection.PRNGStates = ambientRayIntersection.PRNGStates;
+          if (ambientRayIntersection.type >= 0) rayIntersection.color = float4(0, 0, 0, 1);
           else rayIntersection.color = float4(1, 1, 1, 1);
-          rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
         }
         else if (GetRandomValue(rayIntersection.PRNGStates) < color.a) {
           // reflect
@@ -221,9 +217,11 @@ Shader "RayTracing/Stardard"
             TraceRay(_AccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, rayDescriptor, reflectionRayIntersection);
 
             rayIntersection.PRNGStates = reflectionRayIntersection.PRNGStates;
-            float r = reflectionRayIntersection.distance;
-            if (r < 1) r = 1;
-            rayIntersection.color = color * reflectionRayIntersection.color / (r * r);
+            if (reflectionRayIntersection.type >= 0) {
+              float r = reflectionRayIntersection.distance;
+              if (r < 1) r = 1;
+              rayIntersection.color = color * reflectionRayIntersection.color / (r * r);
+            }
           }
           // self color
           else {
@@ -252,10 +250,10 @@ Shader "RayTracing/Stardard"
               float r = shadowRayIntersection.distance;
               if (r < 1) r = 1;
               lightColor = shadowRayIntersection.color / (r * r);
+              rayIntersection.color = color * lightColor;
             }
             
             rayIntersection.PRNGStates = shadowRayIntersection.PRNGStates;
-            rayIntersection.color = color * lightColor;
           }
         } 
         // trasparent
@@ -300,9 +298,11 @@ Shader "RayTracing/Stardard"
           TraceRay(_AccelerationStructure, RAY_FLAG_NONE, 0xFF, 0, 1, 0, rayDescriptor, refractionRayIntersection);
 
           rayIntersection.PRNGStates = refractionRayIntersection.PRNGStates;
-          float r = refractionRayIntersection.distance;
-          if (r < 1) r = 1;
-          rayIntersection.color = color * refractionRayIntersection.color / (r * r);
+          if (refractionRayIntersection.type >= 0) {
+            float r = refractionRayIntersection.distance;
+            if (r < 1) r = 1;
+            rayIntersection.color = color * refractionRayIntersection.color / (r * r);
+          }
         }
         rayIntersection.color.a = 1;
         rayIntersection.type = 0;
