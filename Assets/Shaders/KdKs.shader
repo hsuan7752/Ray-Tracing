@@ -5,8 +5,8 @@ Shader "RayTracing/KdKs"
       _Color ("Color", Color) = (1,1,1,1)
       _MainTex ("Albedo (RGB)", 2D) = "white" {}
       _Normal ("Normal Map (RGB)", 2D) = "gray" {}
-      _Diffuse_Color ("Diffuse Color", Color) = (1,1,1,1)
-      _Specular_Color ("Specular Color", Color) = (1,1,1,1)
+      _Diffuse_Color ("Diffuse Color", Color) = (0.1,0.1,0.1,1)
+      _Specular_Color ("Specular Color", Color) = (0.1,0.1,0.1,1)
       _Glossiness ("Smoothness", Range(0,1)) = 0.5
       _Metallic ("Metallic", Range(0,1)) = 0.0
     }

@@ -227,6 +227,8 @@ public class cpbrt : MonoBehaviour
                 gameObject.name = "Cone";
                 n =  getObject(words, index + 1, gameObject);
                 sceneManager.AddRenderers(gameObject.GetComponent<MeshRenderer>());
+                gameObject.GetComponent<MeshRenderer>().material = new UnityEngine.Material(Shader.Find("Standard"));
+                
                 break;
 
             case "plane":
@@ -272,8 +274,15 @@ public class cpbrt : MonoBehaviour
                     break;
 
                 case "Material":
+                    int k = -1;
                     if (line[1] == "color")
-                        gameObject.GetComponent<MeshRenderer>().material = new UnityEngine.Material( Shader.Find("RayTracing/AO"));
+                    {
+                        gameObject.GetComponent<MeshRenderer>().material = new UnityEngine.Material(Shader.Find("RayTracing/KdKs"));
+                        //k = find(line, "Kd");
+                        //gameObject.GetComponent<MeshRenderer>().material.SetColor("_Diffuse_Color", new Color(float.Parse(line[k + 1]), float.Parse(line[k + 2]), float.Parse(line[k + 3])));
+                        //k = find(line, "Ks");
+                        //gameObject.GetComponent<MeshRenderer>().material.SetColor("_Specular_Color", new Color(float.Parse(line[k + 1]), float.Parse(line[k + 2]), float.Parse(line[k + 3])));
+                    }
                     else if (line[1] == "mirror")
                         gameObject.GetComponent<MeshRenderer>().material = new UnityEngine.Material(Shader.Find("Test/Glass_2"));
                     //else
