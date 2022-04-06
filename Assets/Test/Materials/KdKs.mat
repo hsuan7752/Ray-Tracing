@@ -66,11 +66,11 @@ Material:
     - _Diffuse: 1
     - _DstBlend: 0
     - _GlossMapScale: 1
-    - _Glossiness: 0.429
+    - _Glossiness: 0.45
     - _GlossyReflections: 1
     - _IOR: 1
     - _MaxLength: 1
-    - _Metallic: 0.529
+    - _Metallic: 0.517
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
@@ -81,8 +81,8 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 0, b: 0, a: 1}
-    - _Diffuse_Color: {r: 0, g: 1, b: 0.06818819, a: 1}
+    - _Color: {r: 0.5754717, g: 0, b: 0, a: 1}
+    - _Diffuse_Color: {r: 0.8679245, g: 0.7382149, b: 0.25792095, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _Specular_Color: {r: 0.040236473, g: 0, b: 1, a: 1}
+    - _Specular_Color: {r: 1, g: 0.9090665, b: 0.8349056, a: 1}
   m_BuildTextureStacks: []

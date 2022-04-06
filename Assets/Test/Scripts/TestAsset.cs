@@ -15,9 +15,15 @@ public class TestAsset : RayTracingTutorialAsset
   public override RayTracingTutorial CreateTutorial()
   {
     LightSamplePos.Clear();
-    for (float x=-5f; x<=20f; x+=1.3f) {
-      for (float z=-2.5f; z<=2.5f; z+=0.8f) {
-        LightSamplePos.Add(new Vector3(x, 1.8f, z));
+    foreach (Vector3 pos in Sampling.position)
+      LightSamplePos.Add(pos);
+
+    // for corneil box
+    if (LightSamplePos.Count == 0) {
+      for (float x=-5f; x<=20f; x+=1.3f) {
+        for (float z=-2.5f; z<=2.5f; z+=0.8f) {
+          LightSamplePos.Add(new Vector3(x, 1.8f, z));
+        }
       }
     }
     // for (float x=-0.5f; x<=0.5f; x+=0.01f) {
