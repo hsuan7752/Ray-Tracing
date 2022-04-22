@@ -72,7 +72,7 @@ public class cpbrt : MonoBehaviour
 
     public void Load()
     {
-        path = EditorUtility.OpenFilePanel("Overwrite with cpbrt", "", "cpbrt");
+        path = SFB.StandaloneFileBrowser.OpenFilePanel("Overwrite with cpbrt", "", "cpbrt", false)[0];
 
         if (!File.Exists(path))
             return;

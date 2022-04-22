@@ -1,3 +1,6 @@
 [submodule "Assets/GPU-Ray-Tracing-in-One-Weekend"]
 	path = Assets/GPU-Ray-Tracing-in-One-Weekend
 	url = https://github.com/zhing2006/GPU-Ray-Tracing-in-One-Weekend-by-Unity-2019.3.git
+[submodule "Assets/UnityStandaloneFileBrowser"]
+	path = Assets/UnityStandaloneFileBrowser
+	url = https://github.com/gkngkc/UnityStandaloneFileBrowser
