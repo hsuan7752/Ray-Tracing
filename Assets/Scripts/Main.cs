@@ -32,6 +32,7 @@ public class Test : RayTracingTutorial
   public override void Render(ScriptableRenderContext context, Camera camera)
   {
     base.Render(context, camera);
+    if (camera == Camera.main) return;
     var outputTarget = RequireOutputTarget(camera);
     var outputTargetSize = RequireOutputTargetSize(camera);
 
